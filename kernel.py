@@ -70,22 +70,32 @@ def run_adb_command(command: List[str], device_serial: str = None):
     return result.stdout.strip()
 
 def get_screen_state(device_serial: str = None) -> str:
-    """Dumps the current UI XML and returns the sanitized JSON string."""
-    # 1. Capture XML
-    run_adb_command(["shell", "uiautomator", "dump", SCREEN_DUMP_PATH], device_serial)
+    """
+    Dumps the current UI XML and returns the sanitized JSON string.
     
-    # 2. Pull to local
-    run_adb_command(["pull", SCREEN_DUMP_PATH, LOCAL_DUMP_PATH])
-    
-    # 3. Read & Sanitize
-    if not os.path.exists(LOCAL_DUMP_PATH):
-        return "Error: Could not capture screen."
+    Args:
+        device_serial: Optional device serial number to target specific device
+    """
+    try:
+        # 1. Capture XML
+        run_adb_command(["shell", "uiautomator", "dump", SCREEN_DUMP_PATH], device_serial)
         
-    with open(LOCAL_DUMP_PATH, "r", encoding="utf-8") as f:
-        xml_content = f.read()
+        # 2. Pull to local
+        run_adb_command(["pull", SCREEN_DUMP_PATH, LOCAL_DUMP_PATH], device_serial)
         
-    elements = sanitizer.get_interactive_elements(xml_content)
-    return json.dumps(elements, indent=2)
+        # 3. Read & Sanitize
+        if not os.path.exists(LOCAL_DUMP_PATH):
+            return "Error: Could not capture screen."
+            
+        with open(LOCAL_DUMP_PATH, "r", encoding="utf-8") as f:
+            xml_content = f.read()
+            
+        elements = sanitizer.get_interactive_elements(xml_content)
+        return json.dumps(elements, indent=2)
+        
+    except Exception as e:
+        print(f"❌ Error in get_screen_state: {str(e)}")
+        return f"Error: {str(e)}"
 
 def execute_action(action: Dict[str, Any], device_serial: str = None):
     """
